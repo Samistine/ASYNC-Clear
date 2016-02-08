@@ -1,0 +1,6 @@
+name: AsyncClear
+main: com.samistine.plotclear.Main
+version: 3
+description: Clears Plots Without Dat lag
+author: Samistine
+depend: [PlotMe]
