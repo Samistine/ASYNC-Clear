@@ -150,11 +150,6 @@ public class PlotClear implements Listener {
             final int bottomZ = bottom.getBlockZ();
             final int topZ = top.getBlockZ();
 
-            ChunkUtils utilss = new ChunkUtils();
-            ChunkUtils.FoundChunks fcc = utilss.findChunksInArea(world, bottomX, topX, bottomZ, topZ);
-            utilss.highlightArea(fcc, 64);
-            System.out.println(fcc);
-
             int minChunkX = (int) Math.floor((double) bottomX / 16);
             int maxChunkX = (int) Math.floor((double) topX / 16);
             int minChunkZ = (int) Math.floor((double) bottomZ / 16);
@@ -217,7 +212,7 @@ public class PlotClear implements Listener {
                         }
                     }
                 }
-            }.runTaskLater(pl, 1L);
+            }.runTaskAsynchronously(pl);//Probably not safe but ehh it works
 
             //Begin resetting blocks that need it
             new BukkitRunnable() {
