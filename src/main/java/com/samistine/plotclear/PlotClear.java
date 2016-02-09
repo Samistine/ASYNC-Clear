@@ -25,16 +25,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.worldcretornica.plotme_core.Plot;
-import com.worldcretornica.plotme_core.PlotId;
-//import com.worldcretornica.plotme_core.PlotMapInfo;
 import com.worldcretornica.plotme_core.PlotMeCoreManager;
 import com.worldcretornica.plotme_core.PlotMe_Core;
 import com.worldcretornica.plotme_core.api.ILocation;
 import com.worldcretornica.plotme_core.api.IPlayer;
 import com.worldcretornica.plotme_core.api.IPlotMe_GeneratorManager;
 import com.worldcretornica.plotme_core.bukkit.api.BukkitLocation;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 
 public class PlotClear implements Listener {
@@ -87,7 +83,7 @@ public class PlotClear implements Listener {
                 return;
             }
 
-            PlotId plotId = manager.getPlotId(iPlayer.getLocation());
+            String plotId = manager.getPlotId(iPlayer.getLocation());
 
             if (plotId == null) {
                 player.sendMessage(ChatColor.RED + plotmeAPI.getUtil().C("MsgNoPlotFound"));
@@ -119,8 +115,6 @@ public class PlotClear implements Listener {
             ILocation iBottom = manager.getPlotBottomLoc(iPlayer.getWorld(), plotId);
             Location bottom = ((BukkitLocation) iBottom).getLocation();
             final IPlotMe_GeneratorManager plotMapInfo = plotmeAPI.getGenManager(plot.getWorld().toLowerCase());
-
-            final Queue<Location> blocks = new ConcurrentLinkedQueue<>();
 
             //findFile(System.getProperty("user.dir"), plot.getWorld(), "PlotFloorBlock");
             //findFile(System.getProperty("user.dir"), plot.getWorld(), "FillBlock");
@@ -156,6 +150,11 @@ public class PlotClear implements Listener {
             final int bottomZ = bottom.getBlockZ();
             final int topZ = top.getBlockZ();
 
+            ChunkUtils utilss = new ChunkUtils();
+            ChunkUtils.FoundChunks fcc = utilss.findChunksInArea(world, bottomX, topX, bottomZ, topZ);
+            utilss.highlightArea(fcc, 64);
+            System.out.println(fcc);
+
             int minChunkX = (int) Math.floor((double) bottomX / 16);
             int maxChunkX = (int) Math.floor((double) topX / 16);
             int minChunkZ = (int) Math.floor((double) bottomZ / 16);
@@ -180,20 +179,17 @@ public class PlotClear implements Listener {
                 }
             }
 
-//            List<Location> locs = new ArrayList<>();
-//            for (int x = bottomX; x <= topX; x++) {
-//                for (int z = bottomZ; z <= topZ; z++) {
-//                    Location location = new Location(world, x, 0, z);
-//                    locs.add(location);
-//                }
-//            }
-//            ChunkUtils utils = new ChunkUtils();
-//            ChunkUtils.FoundChunks result = utils.findChunksInArea(locs);
-//            for (Chunk chunk : result.completeChunks) {
-//                System.out.println("Regenerating chunk " + chunk.getX() + " " + chunk.getZ());
-//                System.out.println(chunk.getWorld().regenerateChunk(chunk.getX(), chunk.getZ()));
-//                chunk.
-//            }
+            //Regenerate full chunks using api method, this is extremely fast compared to other methods
+            ChunkUtils utils = new ChunkUtils();
+            ChunkUtils.FoundChunks fc = utils.findChunksInArea(world, bottomX, topX, bottomZ, topZ);
+            for (Chunk chunk : fc.completeChunks) {
+                world.regenerateChunk(chunk.getX(), chunk.getZ());
+            }
+
+            //Store locations that need resetting
+            final Queue<Location> blocks = new ConcurrentLinkedQueue<>();
+
+            //Begin finding blocks that need reseting
             final BukkitTask blockFindTask = new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -221,7 +217,9 @@ public class PlotClear implements Listener {
                         }
                     }
                 }
-            }.runTaskAsynchronously(pl); // changed
+            }.runTaskLater(pl, 1L);
+
+            //Begin resetting blocks that need it
             new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -230,8 +228,7 @@ public class PlotClear implements Listener {
                     int blocksPerTick = 50;
                     Location location;
 
-                    for (int i = 0; i < blocksPerTick
-                            && (location = blocks.poll()) != null; ++i) {
+                    for (int i = 0; i < blocksPerTick && (location = blocks.poll()) != null; ++i) {
                         if (!location.getChunk().isLoaded()) {
                             location.getChunk().load(true);
                         }
@@ -248,11 +245,7 @@ public class PlotClear implements Listener {
                         }
                     }
 
-                    if (blocks.isEmpty()
-                            && !Bukkit.getScheduler().isCurrentlyRunning(
-                                    blockFindTask.getTaskId())
-                            && !Bukkit.getScheduler().isQueued(
-                                    blockFindTask.getTaskId())) {
+                    if (blocks.isEmpty() && !pl.getServer().getScheduler().isCurrentlyRunning(blockFindTask.getTaskId()) && !pl.getServer().getScheduler().isQueued(blockFindTask.getTaskId())) {
 
                         cancel();
 

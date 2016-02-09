@@ -34,7 +34,7 @@
 		<dependency>
 			<groupId>PlotMe-Core</groupId>
 			<artifactId>com.worldcretornica.plotme</artifactId>
-			<version>0.17-SAMISTINE</version>
+			<version>0.16</version>
 			<scope>provided</scope>
 			<!--<systemPath>C:\Users\Samuel\workspace\Jars\PlotMe-Core.jar\</systemPath>-->
 		</dependency>
